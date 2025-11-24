@@ -33,6 +33,7 @@
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
+#include "absl/flags/flag.h"
 #include "glog/logging.h"
 #include "gutil/collections.h"
 #include "gutil/proto.h"
@@ -50,6 +51,9 @@
 #include "thinkit/mirror_testbed.h"
 #include "thinkit/switch.h"
 #include "gtest/gtest.h"
+
+// Flag used to skip GNMI push if set to false in the command line
+ABSL_FLAG(bool, gnmi_push_support, true, "GNMI push config supported");
 
 namespace pins_test {
 namespace {
@@ -183,8 +187,11 @@ ConfigureSwitchAndReturnP4RuntimeSession(
   // P4RuntimeSession and clear the tables first.
   RETURN_IF_ERROR(TryClearingEntities(thinkit_switch, metadata));
 
-  if (gnmi_config.has_value()) {
-    RETURN_IF_ERROR(PushGnmiConfig(thinkit_switch, *gnmi_config));
+  // Push GNMI config only if it is supported
+  if (absl::GetFlag(FLAGS_gnmi_push_support)) {
+    if (gnmi_config.has_value()) {
+      RETURN_IF_ERROR(PushGnmiConfig(thinkit_switch, *gnmi_config));
+    }
   }
 
   ASSIGN_OR_RETURN(auto p4rt_session,
